@@ -5,12 +5,35 @@ import { MsalAuthenticationTemplate, useMsal } from '@azure/msal-react';
 import { InteractionType } from '@azure/msal-browser';
 
 const authRequest = {
-  scopes: ["User.Read"],
+  scopes: ["api://1bdd612d-ff67-409b-b453-7fa378427afe/read"],
 };
 
 function App() {
   const { instance } = useMsal();
-  
+
+  async function getWeatherForecast() {
+    const account = instance.getActiveAccount();
+    if(account==null) throw Error("No active account!");
+
+    const tokenResponse = await instance.acquireTokenSilent({
+      ...authRequest,
+      account
+    });
+
+    const headers = new Headers();
+    const bearer = `Bearer ${tokenResponse.accessToken}`;
+    headers.append("Authorization", bearer);
+
+    const options = {
+      method: 'GET',
+      cors: 'cors',
+      headers
+    };
+
+    var response = await fetch('https://workshop1-web-api.azurewebsites.net/WeatherForecast', options);
+    alert(await response.text());
+  }
+    
   return (
     <MsalAuthenticationTemplate
     interactionType={InteractionType.Redirect}
@@ -20,14 +43,12 @@ function App() {
         <header className="App-header">
           <img src={logo} className="App-logo" alt="logo" />
           <p>Logged in as { instance.getActiveAccount()?.username || 'none' }</p>
-          <a
+          <button
             className="App-link"
-            href="https://reactjs.org"
-            target="_blank"
-            rel="noopener noreferrer"
+            onClick={getWeatherForecast}
           >
-            Learn React
-          </a>
+            Get weather forecast
+          </button>
         </header>
       </div>
     </MsalAuthenticationTemplate>
